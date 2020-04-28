@@ -6,15 +6,19 @@ Created on Thu Mar  5 22:22:03 2020
 """
 import urllib3
 import requests
+import cherrypy
+import jinja2
+import matplotlib
+from spyre import server
 import datetime
 import pandas as pd
 import os
-http = urllib3.PoolManager()
+'''http = urllib3.PoolManager()
 now = datetime.datetime.now()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 today=str("+{}+{}+{}".format(now.day, now.month, now.year))
 i = 1
-while i <= 5: #загрузка файлов
+while i <= 27: #загрузка файлов
     now = datetime.datetime.now()
     url1 = 'https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/get_TS_admin.php?country=UKR&provinceID='
     url2 = str(i)
@@ -36,24 +40,59 @@ while i <= 5: #загрузка файлов
     data.drop(data.tail(1).index,inplace=True) #треба буде далі мучати
     data.to_csv(filename)
     i = i+1
-    print ("VHI"+url2+" is downloaded..." )   
+    print ("VHI"+url2+" is downloaded..." )'''
     
-    
-'''def regionchange(): #поменять на словарь
-    print("choose the region (enter id)")
-    k=int(input())
-    dict = { 1:24, 2:25, 3:5, 4:6, 5:20, 6:23, 7:26, 8:7, 9:11, 10:13, 11:14,
-            12:15, 13:16, 14:17, 15:18, 16:19, 17:21, 18:22, 19:8, 20:9, 21:10,
-            22:1, 23:3, 24:2, 25:4, 26:12}
-    if k>26:
-        print("there are no such regions")
-        i=regionchange()
-    elif k<1:
-        print("there are no such regions")
-        i=regionchange()
-    else:
-        i=dict.get(k)
-    return(i)'''
+class App2(server.App):
+    title = "VHI doings"
+    inputs = [{        "type":'dropdown',
+                    "label": 'Parameter',
+                    "options" : [ {"label": "VHI", "value":"VHI"},
+                                  {"label": "VCI", "value":"VCI"},
+                                  {"label": "TCI", "value":"TCI"}],
+                    "key": 'ticker1',
+                    "action_id": "update_data"},
+    {        "type":'dropdown',
+                    "label": 'Region',
+                    "options" : [ {"label": "1", "value":"1"},
+                                  {"label": "2", "value":"2"},
+                                  {"label": "3", "value":"3"}],
+                    "key": 'ticker2',
+                    "action_id": "update_data"}]
+
+    controls = [{    "type" : "hidden",
+                    "id" : "update_data"}]
+    outputs = [{ "type" : "table",
+                    "id" : "table_id",
+                    "control_id" : "update_data",
+                    "tab" : "Table",
+                    "on_page_load": True}]
+    def getData(self, params):
+        ticker2 = params['ticker2']
+        ticker = params['ticker1']
+        url1 = 'https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/get_TS_admin.php?country=UKR&provinceID='
+        url3 = '&year1=1981&year2=1990&type=Mean'
+        url2 = str(ticker2)
+        url = url1+url2+url3
+        req = requests.get(url)
+        vhi_con = req.content
+        file1 = 'vhi_id_'
+        file2 = '.csv'
+        filename=file1+url2+file2
+        filev = open(filename,'wb') #пропустить 1 строчку
+        filev.write(vhi_con)
+        filev.close()
+        data = pd.read_csv(filename,skiprows=1)
+        data.drop(data.tail(1).index,inplace=True) #треба буде далі мучати
+        data.to_csv(filename)
+        columns=['row','year','week', 'NDVI', 'PBT', 'VCI', 'TCI', 'VHI']
+        data = pd.read_csv(filename,index_col=False, sep=',',header=None,names=columns) 
+        df = pd.DataFrame(data)
+        df = df[(df.VHI>=0)]
+        df['Region']=str(ticker2)
+        return df
+        
+app = App2()
+app.launch()
     
 def regionchange_passive(k): #поменять на словарь
     dict = { 1:24, 2:25, 3:5, 4:6, 5:20, 6:23, 7:26, 8:7, 9:11, 10:13, 11:14,
@@ -89,7 +128,7 @@ def massive_df(primary):
     print(masdf)
     return(masdf)    
     
-mdf=massive_df(primary)
+#mdf=massive_df(primary)
                                                         #три стовпчики: рік, мін, макс для всіх років
                                                         #три стовпчики: рік, мін, макс для всіх років і всіх регіонів (рік і регіон)
                                                         #по місяцях :с перше завдання. (на три кусочки)
@@ -105,7 +144,7 @@ def extremum(df):
     temp['Region']=int(i)
     print(temp)                     
     
-extremum(mdf)    
+#extremum(mdf)    
 
 def extremum_auto(df, i):
     temp=df[(df.Region==i)][['year','VHI']]
@@ -127,7 +166,7 @@ def extremum_all(df):
     print(alltemp)
     
     
-extremum_all(mdf)
+#extremum_all(mdf)
 
 '''
 def extremum_per_year_per_region(df,i,yr):
@@ -177,7 +216,7 @@ def extremum_all_month(df):
         i=i+1 
     print(alltemp)
         
-extremum_all_month(mdf)     
+#extremum_all_month(mdf)     
 
 def all_years_extrem(df): #засухи за все года 
     print("vvedit_vidcotok_posuh_pomirnih ta id")
@@ -198,7 +237,7 @@ def all_years_extrem(df): #засухи за все года
         k=k+1
         
         
-all_years_extrem(mdf)
+#all_years_extrem(mdf)
 
 
 def all_years_pomir(df): #засухи за все года среднии
@@ -219,7 +258,7 @@ def all_years_pomir(df): #засухи за все года среднии
             print(k)
         k=k+1
                
-all_years_pomir(mdf)
+#all_years_pomir(mdf)
 
 '''replace({k: m*100, k+1: m*100, 
                                                      k+2: m*100, k+3: m*100, (k+3+(m%2)): m*100}, inplace=True)  '''

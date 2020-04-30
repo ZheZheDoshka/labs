@@ -58,7 +58,18 @@ class App2(server.App):
                    "label": 'week2',
                    "value" : '20',
                    "key": 'w2',
+                   "action_id": "update_data"},
+     {      "type":'text',
+                   "label": 'year1',
+                   "value" : '1985',
+                   "key": 'y1',
+                   "action_id": "update_data"},
+     {      "type":'text',
+                   "label": 'year2',
+                   "value" : '1986',
+                   "key": 'y2',
                    "action_id": "update_data"}]
+    
 
     controls = [{    "type" : "hidden",
                     "id" : "update_data"}]
@@ -84,12 +95,14 @@ class App2(server.App):
         region = int(params['region'])           #переиспользовать гетдата и переместить загрузку в модуль       #створити гілку, перейти в неї, додати в індексацію, пулл реквест
         wmin = int(params['w1'])
         wmax = int(params['w2'])
+        ymin = int(params['y1'])
+        ymax = int(params['y2'])
         df=masdf
-        df=df[(df.week>=wmin)&(df.week<=wmax)&(df.Region==region)]
+        df=df[(df.week>=wmin)&(df.week<=wmax)&(df.Region==region)&(df.year>=ymin)&(df.year<=ymax)]
         return df
     
     def space(self, params):
-        df2=masdf
+        df2=self.vframe(params)
         vari=params['variable']
         df2=vd.extremum_per_year_per_region(df2, vari)
         return df2
@@ -103,7 +116,7 @@ class App2(server.App):
         vhi_plot.set_title(vari+" min and max per month")
         drawn = vhi_plot.get_figure()
         return drawn
-vd.download_all()
+#vd.download_all()
 masdf=vd.massive_df()
 app = App2()
 app.launch(port=8083)
